@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>java内存监控工具 | R</title>
+  <meta name="description" content="1.JDK命令工具   名称 主要作用    jps JVM Process Status Tool,显示指定系统内所有的HotSpot虚拟机进程111   jstat JVM Statistics Monitoring Tool,用于收集HotSpot虚拟机各方面的运行数据   jinfo Configuration Info For Java ,显示虚拟机配置信息   jmap Memory">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java内存监控工具">
+<meta property="og:url" content="http://yoursite.com/2019/05/28/jvm/java-jvm-monitor/index.html">
+<meta property="og:site_name" content="R">
+<meta property="og:description" content="1.JDK命令工具   名称 主要作用    jps JVM Process Status Tool,显示指定系统内所有的HotSpot虚拟机进程111   jstat JVM Statistics Monitoring Tool,用于收集HotSpot虚拟机各方面的运行数据   jinfo Configuration Info For Java ,显示虚拟机配置信息   jmap Memory">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://yoursite.com/2019/05/28/jvm/java-jvm-monitor/jps.png">
+<meta property="article:published_time" content="2019-05-28T07:43:05.000Z">
+<meta property="article:modified_time" content="2020-06-16T07:22:32.231Z">
+<meta property="article:author" content="Hahass">
+<meta property="article:tag" content="JVM">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/05/28/jvm/java-jvm-monitor/jps.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://yoursite.com/2019/05/28/jvm/java-jvm-monitor/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="R" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Hahass</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Web Developer &amp; Designer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> nanjing, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">Books</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/JAVA-JVM/">JAVA_JVM</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpringBoot/">SpringBoot</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E8%AE%B0%E5%BD%95/">记录</a><span class="category-list-count">2</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget-body">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/" rel="tag">JVM</a><span class="tag-list-count">7</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SpringBoot/" rel="tag">SpringBoot</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2/" rel="tag">博客</a><span class="tag-list-count">2</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/JVM/" style="font-size: 14px;">JVM</a> <a href="/tags/SpringBoot/" style="font-size: 13px;">SpringBoot</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 13px;">博客</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Archive</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">10</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/SpringBoot/">SpringBoot</a>
+              </p>
+              <p class="item-title">
+                <a href="/2019/06/12/springboot/springboot-yml/" class="title">再学SpringBoot-springboot配置文件的使用</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-06-12T13:23:00.000Z" itemprop="datePublished">2019-06-12</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/SpringBoot/">SpringBoot</a>
+              </p>
+              <p class="item-title">
+                <a href="/2019/05/29/springboot/springboot-frist/" class="title">再学SpringBoot-搭建第一个springboot项目</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-05-29T08:59:41.000Z" itemprop="datePublished">2019-05-29</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/JAVA-JVM/">JAVA_JVM</a>
+              </p>
+              <p class="item-title">
+                <a href="/2019/05/28/jvm/java-jvm-gc-memory/" class="title">java内存分配与回收策略</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-05-28T07:43:05.000Z" itemprop="datePublished">2019-05-28</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/JAVA-JVM/">JAVA_JVM</a>
+              </p>
+              <p class="item-title">
+                <a href="/2019/05/28/jvm/java-jvm-monitor/" class="title">java内存监控工具</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-05-28T07:43:05.000Z" itemprop="datePublished">2019-05-28</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/JAVA-JVM/">JAVA_JVM</a>
+              </p>
+              <p class="item-title">
+                <a href="/2019/05/27/jvm/java-jvm-gc-algorithm-1/" class="title">垃圾回收器算法的实现</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-05-27T07:49:28.000Z" itemprop="datePublished">2019-05-27</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<aside class="sidebar sidebar-toc collapse" id="collapseToc" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    <nav id="toc" class="article-toc">
+      <h3 class="toc-title">Catalogue</h3>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-JDK命令工具"><span class="toc-number">1.</span> <span class="toc-text">1.JDK命令工具</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-jps-虚拟机进程状态工具"><span class="toc-number">1.1.</span> <span class="toc-text">1.1 jps:虚拟机进程状态工具</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-jstat-虚拟机统计信息监视工具"><span class="toc-number">1.2.</span> <span class="toc-text">1.2 jstat:虚拟机统计信息监视工具</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-jinfo-java配置信息工具"><span class="toc-number">1.3.</span> <span class="toc-text">1.3 jinfo:java配置信息工具</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-jmap-java内存印象工具"><span class="toc-number">1.4.</span> <span class="toc-text">1.4 jmap:java内存印象工具</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-5-jhat-虚拟机堆转储快照分析工具"><span class="toc-number">1.5.</span> <span class="toc-text">1.5 jhat:虚拟机堆转储快照分析工具</span></a></li></ol></li></ol>
+    </nav>
+  </div>
+</aside>
+
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-jvm/java-jvm-monitor" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      java内存监控工具
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2019/05/28/jvm/java-jvm-monitor/" class="article-date">
+	  <time datetime="2019-05-28T07:43:05.000Z" itemprop="datePublished">2019-05-28</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/JAVA-JVM/">JAVA_JVM</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link" href="/tags/JVM/" rel="tag">JVM</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2019/05/28/jvm/java-jvm-monitor/#comments" class="article-comment-link">Comments</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h2 id="1-JDK命令工具"><a href="#1-JDK命令工具" class="headerlink" title="1.JDK命令工具"></a>1.JDK命令工具</h2><table>
+<thead>
+<tr>
+<th align="left">名称</th>
+<th align="left">主要作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">jps</td>
+<td align="left">JVM Process Status Tool,显示指定系统内所有的HotSpot虚拟机进程111</td>
+</tr>
+<tr>
+<td align="left">jstat</td>
+<td align="left">JVM Statistics Monitoring Tool,用于收集HotSpot虚拟机各方面的运行数据</td>
+</tr>
+<tr>
+<td align="left">jinfo</td>
+<td align="left">Configuration Info For Java ,显示虚拟机配置信息</td>
+</tr>
+<tr>
+<td align="left">jmap</td>
+<td align="left">Memory Map For Java,生成虚拟机的内存转储快照</td>
+</tr>
+<tr>
+<td align="left">jhat</td>
+<td align="left">JVM Heap Dump Browser,用于分析heapdump文件，它会建立一个Http/HTML服务器，让用户可以在浏览器上查看分析结果</td>
+</tr>
+<tr>
+<td align="left">jstack</td>
+<td align="left">Stack Trace For Java 显示虚拟机的线程快照</td>
+</tr>
+</tbody></table>
+<h3 id="1-1-jps-虚拟机进程状态工具"><a href="#1-1-jps-虚拟机进程状态工具" class="headerlink" title="1.1 jps:虚拟机进程状态工具"></a>1.1 jps:虚拟机进程状态工具</h3><p>jps列出正在运行的虚拟机进行，并显示虚拟机执行主类名称以及这些进程的本地虚拟机唯一ID。</p>
+<p>jps命令:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jps [option] [hostid]</span><br></pre></td></tr></table></figure>
+
+<p>jps执行样例:<br><img src="/2019/05/28/jvm/java-jvm-monitor/jps.png" alt="jps.png"></p>
+<table>
+<thead>
+<tr>
+<th align="left">选项</th>
+<th align="left">作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">-q</td>
+<td align="left">只输出LVMID，省略主类的名称</td>
+</tr>
+<tr>
+<td align="left">-m</td>
+<td align="left">输出虚拟机进程启动是传递给主类main()函数的参数</td>
+</tr>
+<tr>
+<td align="left">-l</td>
+<td align="left">输出主类的全名，如果进程执行的是jar包，输出jar路径</td>
+</tr>
+<tr>
+<td align="left">-v</td>
+<td align="left">输出虚拟机进程启动时JVM参数</td>
+</tr>
+</tbody></table>
+<h3 id="1-2-jstat-虚拟机统计信息监视工具"><a href="#1-2-jstat-虚拟机统计信息监视工具" class="headerlink" title="1.2 jstat:虚拟机统计信息监视工具"></a>1.2 jstat:虚拟机统计信息监视工具</h3><p>jstat监视虚拟机各种运行状态信息的命令行工具。可以显示本地或者远程虚拟机进程中的类装载、内存、垃圾收集、JIT编译等运行数据。</p>
+<p>jstat命令格式</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jstat [option vmid [interval[s|ms][count]]]</span><br></pre></td></tr></table></figure>
+<p>vmid:<br>本地：与本地VMID一致。<br>远程：格式如下<br>[protocol:][//]lvmid[@hostname[:port]/servername]</p>
+<p>interval:查询间隔。<br>count：次数。</p>
+<p>如果省略两个参数，说明只查询一次。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">每250秒查询一次进行2777垃圾收集状况，一次查询20次</span><br><span class="line">jstat -gc 2777 250 20</span><br></pre></td></tr></table></figure>
+
+<p>option:查询虚拟机信息，分为3类：类装载、垃圾收集、运行编译状况</p>
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-class</td>
+<td>监视类装载。卸载数量、总空间以及类装载所消耗的时间</td>
+</tr>
+<tr>
+<td>-gc</td>
+<td>监视java堆状况，包括Eden区、两个Survivor区、老年代、永久代等容量、已用空间、GC时间合计等信息</td>
+</tr>
+<tr>
+<td>-gccapacity</td>
+<td>监视内容与-gc基本相同，但是输出主要关注java堆各个区域使用的最大、最小空间</td>
+</tr>
+<tr>
+<td>-gcutil</td>
+<td>监视内容与-gc基本相同，但是输出主要关注已使用的空间占总空间的百分比</td>
+</tr>
+<tr>
+<td>-gccause</td>
+<td>与-gcutil功能一样，但是会额外输出导致上一次GC产生的原因</td>
+</tr>
+<tr>
+<td>-gcnew</td>
+<td>监视新生代GC状况</td>
+</tr>
+<tr>
+<td>-gcnewcapacity</td>
+<td>监视内容与-gcnew基本相同，输出主要关注使用到的最大、最小空间</td>
+</tr>
+<tr>
+<td>-gcold</td>
+<td>监视老年代GC状况</td>
+</tr>
+<tr>
+<td>-gcoldcapacity</td>
+<td>监视内容与-gcold相同，输出主要关注使用到的最大、最小空间</td>
+</tr>
+<tr>
+<td>-gcpermcapacity</td>
+<td>输出永久代使用到的最大、最小空间</td>
+</tr>
+<tr>
+<td>-compiler</td>
+<td>输出JIT编译器编译过的方法和耗时等信息</td>
+</tr>
+<tr>
+<td>-printcompilation</td>
+<td>输出已近被JIT编译方法</td>
+</tr>
+</tbody></table>
+<h3 id="1-3-jinfo-java配置信息工具"><a href="#1-3-jinfo-java配置信息工具" class="headerlink" title="1.3 jinfo:java配置信息工具"></a>1.3 jinfo:java配置信息工具</h3><p>jinfo的作用是实时的查看和调整虚拟机各项参数</p>
+<p>jinfo命令</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jinfo [option] pid</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-4-jmap-java内存印象工具"><a href="#1-4-jmap-java内存印象工具" class="headerlink" title="1.4 jmap:java内存印象工具"></a>1.4 jmap:java内存印象工具</h3><p>jmap用于生成堆转储快照（heapdump/dump文件）。还可以查询finalize执行队列、java堆和永久代的详细信息，如空间使用率、当前用的哪种收集器等。</p>
+<p>jmap命令</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jmap [option] vmid</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-dump</td>
+<td>生成java堆转储快照，格式为-dump:[live,]format=b,file=&lt;filename&gt;,其中live子参数说明是否只dump出存活的对象</td>
+</tr>
+<tr>
+<td>-finalizerinfo</td>
+<td>显示在F-Queue中等待Finalizer线程执行finalize方法的对象。只在Linux/Solaris平台下有效</td>
+</tr>
+<tr>
+<td>-heap</td>
+<td>显示java堆详细信息，如使用哪种回收器、参数配置、分代状况等。只在Linux/Solaris平台下有效</td>
+</tr>
+<tr>
+<td>-histo</td>
+<td>显示堆中对象统计信息，包括类、实例数量、合计容量</td>
+</tr>
+<tr>
+<td>-permstat</td>
+<td>以ClassLoader为统计口径显示永久代内存状态。只在Linux/Solaris平台下有效</td>
+</tr>
+<tr>
+<td>-F</td>
+<td>当虚拟机进程堆-dump选项没有响应时，可以使用这个选项强制生成dump快照。只在Linux/Solaris</td>
+</tr>
+<tr>
+<td>平台下有效</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3 id="1-5-jhat-虚拟机堆转储快照分析工具"><a href="#1-5-jhat-虚拟机堆转储快照分析工具" class="headerlink" title="1.5 jhat:虚拟机堆转储快照分析工具"></a>1.5 jhat:虚拟机堆转储快照分析工具</h3><p>jhat用于生成虚拟机当前时刻快照。线程快照是当前虚拟机内每一条线程正在执行的方法堆栈的集合，生成线程快照的主要目的是定位线程出现长时间停顿的原因，如线程间死锁、死循环、请求外部资源导致的长时间等。</p>
+<p>jstack命令</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jstack [option] vmid</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-F</td>
+<td>当正常输出的请求不被响应时，强制输出线程堆栈</td>
+</tr>
+<tr>
+<td>-l</td>
+<td>除堆栈外，显示关于锁的附加信息</td>
+</tr>
+<tr>
+<td>-m</td>
+<td>如果调用本地方法的话，可以显示c/c++的堆栈</td>
+</tr>
+</tbody></table>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.jpg" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="" target="_blank"><span class="text-dark">Hahass</span><small class="ml-1x">Web Developer &amp; Designer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2019/05/28/jvm/java-jvm-gc-memory/" title="java内存分配与回收策略"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2019/05/27/jvm/java-jvm-gc-algorithm-1/" title="垃圾回收器算法的实现"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+    <li class="toggle-toc">
+      <a class="toggle-btn collapsed" data-toggle="collapse" href="#collapseToc" aria-expanded="false" title="Catalogue" role="button">
+        <span>[&nbsp;</span><span>Catalogue</span>
+        <i class="text-collapsed icon icon-anchor"></i>
+        <i class="text-in icon icon-close"></i>
+        <span>]</span>
+      </a>
+    </li>
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>$</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>Maybe you could buy me a cup of coffee.</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/" alt="Scan Qrcode" title="Scan" />
+              </div>
+              <p class="text-muted mv">Scan this qrcode</p>
+              <p class="text-grey">Open alipay app scan this qrcode, buy me a coffee!</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/" alt="Scan Qrcode" title="Scan" />
+              </div>
+              <p class="text-muted mv">Scan this qrcode</p>
+              <p class="text-grey">Open wechat app scan this qrcode, buy me a coffee!</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> alipay</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> wechat payment</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>

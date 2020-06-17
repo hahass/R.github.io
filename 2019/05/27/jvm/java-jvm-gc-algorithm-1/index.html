@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>垃圾回收器算法的实现 | R</title>
+  <meta name="description" content="HOTSPOT算法实现枚举根节点GC Roots主要在全局性的引用（例如常量或者类静态属性）与执行上下文（例如栈帧中的本地变量表）中，java进行可达性分析时，对执行时间的敏感还体现在GC停顿上，因为分析工作必须在一个能确保一致性（分析过程中对象引用关系不能再不断变化）的快照中进行，这点是导致GC进行时必须停顿所有的java执行线程的一个重要原因。即使是在GMS收集器中，枚举枚举根节点也要停顿。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="垃圾回收器算法的实现">
+<meta property="og:url" content="http://yoursite.com/2019/05/27/jvm/java-jvm-gc-algorithm-1/index.html">
+<meta property="og:site_name" content="R">
+<meta property="og:description" content="HOTSPOT算法实现枚举根节点GC Roots主要在全局性的引用（例如常量或者类静态属性）与执行上下文（例如栈帧中的本地变量表）中，java进行可达性分析时，对执行时间的敏感还体现在GC停顿上，因为分析工作必须在一个能确保一致性（分析过程中对象引用关系不能再不断变化）的快照中进行，这点是导致GC进行时必须停顿所有的java执行线程的一个重要原因。即使是在GMS收集器中，枚举枚举根节点也要停顿。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://yoursite.com/2019/05/27/jvm/java-jvm-gc-algorithm-1/serial.png">
+<meta property="og:image" content="http://yoursite.com/2019/05/27/jvm/java-jvm-gc-algorithm-1/parnew.png">
+<meta property="og:image" content="http://yoursite.com/2019/05/27/jvm/java-jvm-gc-algorithm-1/cms.png">
+<meta property="og:image" content="http://yoursite.com/2019/05/27/jvm/java-jvm-gc-algorithm-1/GClog.png">
+<meta property="article:published_time" content="2019-05-27T07:49:28.000Z">
+<meta property="article:modified_time" content="2020-06-16T07:22:32.314Z">
+<meta property="article:author" content="Hahass">
+<meta property="article:tag" content="JVM">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/05/27/jvm/java-jvm-gc-algorithm-1/serial.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://yoursite.com/2019/05/27/jvm/java-jvm-gc-algorithm-1/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="R" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">Hahass</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Web Developer &amp; Designer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> nanjing, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">Books</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/JAVA-JVM/">JAVA_JVM</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpringBoot/">SpringBoot</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E8%AE%B0%E5%BD%95/">记录</a><span class="category-list-count">2</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget-body">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/" rel="tag">JVM</a><span class="tag-list-count">7</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SpringBoot/" rel="tag">SpringBoot</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2/" rel="tag">博客</a><span class="tag-list-count">2</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/JVM/" style="font-size: 14px;">JVM</a> <a href="/tags/SpringBoot/" style="font-size: 13px;">SpringBoot</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 13px;">博客</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Archive</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">10</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/SpringBoot/">SpringBoot</a>
+              </p>
+              <p class="item-title">
+                <a href="/2019/06/12/springboot/springboot-yml/" class="title">再学SpringBoot-springboot配置文件的使用</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-06-12T13:23:00.000Z" itemprop="datePublished">2019-06-12</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/SpringBoot/">SpringBoot</a>
+              </p>
+              <p class="item-title">
+                <a href="/2019/05/29/springboot/springboot-frist/" class="title">再学SpringBoot-搭建第一个springboot项目</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-05-29T08:59:41.000Z" itemprop="datePublished">2019-05-29</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/JAVA-JVM/">JAVA_JVM</a>
+              </p>
+              <p class="item-title">
+                <a href="/2019/05/28/jvm/java-jvm-gc-memory/" class="title">java内存分配与回收策略</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-05-28T07:43:05.000Z" itemprop="datePublished">2019-05-28</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/JAVA-JVM/">JAVA_JVM</a>
+              </p>
+              <p class="item-title">
+                <a href="/2019/05/28/jvm/java-jvm-monitor/" class="title">java内存监控工具</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-05-28T07:43:05.000Z" itemprop="datePublished">2019-05-28</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/JAVA-JVM/">JAVA_JVM</a>
+              </p>
+              <p class="item-title">
+                <a href="/2019/05/27/jvm/java-jvm-gc-algorithm-1/" class="title">垃圾回收器算法的实现</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-05-27T07:49:28.000Z" itemprop="datePublished">2019-05-27</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-jvm/java-jvm-gc-algorithm-1" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      垃圾回收器算法的实现
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2019/05/27/jvm/java-jvm-gc-algorithm-1/" class="article-date">
+	  <time datetime="2019-05-27T07:49:28.000Z" itemprop="datePublished">2019-05-27</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/JAVA-JVM/">JAVA_JVM</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link" href="/tags/JVM/" rel="tag">JVM</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2019/05/27/jvm/java-jvm-gc-algorithm-1/#comments" class="article-comment-link">Comments</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h2 id="HOTSPOT算法实现"><a href="#HOTSPOT算法实现" class="headerlink" title="HOTSPOT算法实现"></a>HOTSPOT算法实现</h2><h3 id="枚举根节点"><a href="#枚举根节点" class="headerlink" title="枚举根节点"></a>枚举根节点</h3><p>GC Roots主要在全局性的引用（例如常量或者类静态属性）与执行上下文（例如栈帧中的本地变量表）中，java进行可达性分析时，对执行时间的敏感还体现在GC停顿上，因为分析工作必须在一个能确保一致性（分析过程中对象引用关系不能再不断变化）的快照中进行，这点是导致GC进行时必须停顿所有的java执行线程的一个重要原因。即使是在GMS收集器中，枚举枚举根节点也要停顿。</p>
+<p>在HotSpot中使用OopMap的数据结构来保存对象的引用，从而在执行分析时不需要一个不漏的检查完所有的执行上下文和全局的引用位置，在类加载完成的时候，HotSpot就把对象内什么偏移量上是什么类型的数据计算出来，在JIT编译过程中，也会在特定的位置记录下栈和寄存器中哪些位置是引用。</p>
+<h3 id="安全点"><a href="#安全点" class="headerlink" title="安全点"></a>安全点</h3><p>HotSpot没有为每条指令都生成OopMap，只是在特定的位置记录了这些信息，就是安全点（SafePoint）。即程序执行时并非在所有的地方都要停顿下来开始GC，只有到达安全点才能暂停。<br>SafePoint选定太少会让gc等待时间太长，太多会增加运行时的负荷。</p>
+<p>所以安全点的选定基本是以程序“是否具有让程序长时间执行的特征”为标准进行选定的-因为每条指令执行时间都非常短暂，程序不太可能因为指令流长度太长这个原因而过长时间运行。“长时间执行”的最明显特征就是指令序列复用，例如方法调用，循环跳转，异常跳转等，所有具有这些功能的指令才会产生SafePoint。</p>
+<p>对于SafePoint，另一个需要考虑的问题是如何在GC发生时让所有线程都跑到最近的安全点上在停顿下来。有两个方案：</p>
+<ul>
+<li>抢先式中断</li>
+</ul>
+<p>不需要线程的执行代码主动去配合，在GC发生时，首先把所有线程全部中断，如果发现有线程中断的地方不在安全点上，就恢复线程，让它跑到安全点上。</p>
+<ul>
+<li>主动式中断</li>
+</ul>
+<p>当GC需要中断线程的时候，不直接对线程操作，仅设置一个标志，各个线程执行时主动去轮询这个标志，发现中断标志位真就自己中断挂起。轮询标志的地方和安全点是重合的，另外在加上创建对象需要分配内存的地方。</p>
+<h3 id="安全区域"><a href="#安全区域" class="headerlink" title="安全区域"></a>安全区域</h3><p>安全区域是指在一段代码片段之中，引用关系不会发生变化。在这个区域中的任意地方开始GC都是安全的。<br>在线程执行到安全区域中的代码时，首先标识自己进入了安全区域，当在这段时间里JVM要发起GC时，就不用管标识自己为安全区域状态的线程了，在线程要离开安全区域，要检查是否已经完成了根节点枚举，如果完成了那现场就继续执行，否则必须等待直到收到可以离开安全区域的信号位置。</p>
+<h2 id="垃圾收集器"><a href="#垃圾收集器" class="headerlink" title="垃圾收集器"></a>垃圾收集器</h2><p>收集算法是内存回收的方法理论，垃圾收集器就是内存回收的具体实现。java虚拟机规范没有对垃圾收集器如何实现有规定，因此不同厂商、版本提供的垃圾收集器可能大不相同。</p>
+<blockquote>
+<p><font color="green">Serial(/sɪəriəl/)收集器</font></p>
+</blockquote>
+<p>Serial 收集器是最基本、历史最悠久的收集器。这个收集器是一个单线程的收集器，单线程的意义不仅仅说明它是只会使用一个CPU或一条收集线程去完成垃圾收集工作，更重要的是它进行垃圾收集时，必须暂停其他所有的工作线程，直到收集完成。</p>
+<p><img src="/2019/05/27/jvm/java-jvm-gc-algorithm-1/serial.png" alt="serial.png"></p>
+<p>目前为止，Serial依然是虚拟机运行在Client模式下的默认新生代收集器。<br>优点：<br>简单，高效。对于限定单个CPU的环境来说，Serial收集器由于没有线程交互的开销，专心做垃圾收集自然可以获得最高的单线程收集小路。</p>
+<blockquote>
+<p><font color="green">ParNew收集器</font></p>
+</blockquote>
+<p>parNew收集器其实就是Serial收集器的多线程版本，HotSpot第一款真正意义上的并发收集器</p>
+<p><img src="/2019/05/27/jvm/java-jvm-gc-algorithm-1/parnew.png" alt="parnew.png"></p>
+<p>参数：</p>
+<ul>
+<li>-XX:+UseConcMarkSweepGC：选择后的默认新生代收集器</li>
+<li>-XX:+UserParNewGC:强制指定</li>
+<li>-XX:ParallelGCThreads：限制垃圾收集线程数</li>
+</ul>
+<blockquote>
+<p><font color="green">Parallel Scavenge收集器</font></p>
+</blockquote>
+<p>新生代收集器、使用复制算法、并行的多线程收集器。</p>
+<p>特点：<br>关注点与其他收集器不同。CMS等收集器关注点是尽可能的缩短垃圾回收时用户线程停顿的时间，而Parallel Scavenge收集器目的则是达到一个可控制的吞吐量。吞吐量就是CPU运行用户代码时间与CPU总消耗时间的比值，即吞吐量=运行代码时间/(运行代码时间+垃圾收集时间)。</p>
+<p>停顿时间越短越适合需要与用户交互的程序，良好的响应速度能提升用户体验，而高吞吐量则可以高效的利用CPU时间，尽快完成程序的运算任务，主要适合后台运算而不需要太多交互的任务。</p>
+<p>参数：</p>
+<ul>
+<li>-XX:MaxGCPauseMillis:控制最大垃圾收集停顿时间</li>
+</ul>
+<p>参数值是一个大于0的毫米数，收集器尽可能保证内存回收花费的时间不超过设定值。不是说参数调至越小垃圾收集的时间越快，GC停顿时间压缩是以牺牲吞吐量和新生代空间来换取的。</p>
+<ul>
+<li><p>-XX:GCTimeRatil:设置吞吐量大小<br>参数值是一个大于0且小于100的整数，也就是垃圾收集时间占总时间的比率，相当于吞吐量倒数，如果参数设置为19，那么预先的最大GC时间占总时间的5%（1/(1+19)）,默认为99，就是允许最大1%（1/(1+99)）的垃圾收集时间。</p>
+</li>
+<li><p>-XX:UseAdaptiveSizePolicy:这个一个开关参数，打开后，不需要手动指定新生代的大小、Eden和Survivor区的比例，晋升老年代对象年龄等细节参数，会动态调整这些参数以提供最适合的停顿时间或者最大的吞吐量。</p>
+</li>
+</ul>
+<blockquote>
+<p><font color="green">Serial Old 收集器</font></p>
+</blockquote>
+<p>Serial Older 是 Serial 收集器的老年代版本，同样是一大单线程收集器，使用标记-整理算法。</p>
+<blockquote>
+<p><font color="green">Parallel Old 收集器</font></p>
+</blockquote>
+<p>Parallel Old 是 Parallel Scavenge 收集器的老年代版本，使用多线程和标记-整理算法。</p>
+<blockquote>
+<p><font color="green">CMS 收集器</font></p>
+</blockquote>
+<p>CMS(Concurent Mark Sweep)收集器是一种以获取最短回收停顿时间为目标的收集器。目前java集中在互联网网站或者B/S系统服务端，比较重视服务响应时间，给用户带来比较好的体验，CMS非常服务符合这类需求。</p>
+<p>CMS采用标记-清除算法，整个步骤包括：</p>
+<ul>
+<li>初始标记（CMS initial mark）<br>仅仅标记一下GC Roots能直接关联到的对象，速度很快。</li>
+<li>并发标记（CMS concurrent mark）<br>进行GC Roots Tracing的过程</li>
+<li>重新标记（CMS remark）<br>为了修正并发标记期间因用户程序继续运作而导致标志产生变动的那一部分对象的标记记录，这个阶段停顿时间一般会比初始化阶段稍长一些，但远比并发标记的时间短。</li>
+<li>并发清除（CMS concurrent sweep）</li>
+</ul>
+<p>初始标记和重新标记步骤任然需要“stop the world”。整个过程中耗时比较长的并发标记和并发清除过程是与用户线程一起工作的。</p>
+<p><img src="/2019/05/27/jvm/java-jvm-gc-algorithm-1/cms.png" alt="cms.png"></p>
+<p><strong>优点</strong><br>并发收集，低停顿</p>
+<p><strong>缺点</strong></p>
+<ul>
+<li>对CPU资源非常敏感<br>并发阶段，它不会导致用户线程停顿，但是会因为占用了一部分线程而导致应用程序变慢，总吞吐会降低。</li>
+<li>无法处理浮动垃圾，可能出现“Concurrent Mode Failure”失败而导致另一次 Full GC。</li>
+<li>产生大量空间碎片 </li>
+</ul>
+<blockquote>
+<p><font color="green">G1收集器</font></p>
+</blockquote>
+<p>G1是面向服务端的垃圾收集器。</p>
+<p><strong>特点</strong></p>
+<ul>
+<li>并行与并发<br>充分利用多CPU多核环境下的硬件优势，缩短stop the world停顿时间。</li>
+<li>分代收集</li>
+<li>空间整合<br>G1 从整体来看基于标记-整理算法实现，从局部看基于复制算法实现，运行期间不会产生内存碎片。</li>
+<li>可预测的停顿</li>
+</ul>
+<p><strong>步骤</strong></p>
+<ul>
+<li>初始标记</li>
+<li>并发标记</li>
+<li>最终标记</li>
+<li>筛选回收</li>
+</ul>
+<p>初始标记仅仅是标记下GC Roots能直接关联到的对象，并且修改TAMS（next top at mark start）的值，让下一阶段用户程序并发运行时，能在正确可用的Region中创建新对象，这一阶段需要停顿线程。<br>并发标记是从GC Roots开始对堆中对象进行可达性分析，找到存活的对象，这段耗时长，但可与用户程序并发执行。<br>最终标记是为了修正并发标记期间因用户程序继续运作而导致标记发生变化的那一部分标记记录。<br>筛选回收首先对各个Region的回收价值和成本进行排序，根据用户所期望的GC停顿时间来制定回收计划。</p>
+<h2 id="理解GC日志"><a href="#理解GC日志" class="headerlink" title="理解GC日志"></a>理解GC日志</h2><p>下面是一段GC日志：</p>
+<p><img src="/2019/05/27/jvm/java-jvm-gc-algorithm-1/GClog.png" alt="GClog.png"></p>
+<p>“33.125：” 和 “100.67：” 代表GC发生的时间，是从java虚拟机启动以来经过的描述。</p>
+<p>“[GC”和”[Full GC” 说明这次垃圾收集的停顿类型，而不是用来区分新生代还是老年代GC的。有 Full 说明这次GC是发生了“stop  the world”的。</p>
+<p>“[DefNew”、”[Tenured”、”[Perm”标识GC发生区域，这里显示的区域名和使用的GC收集器是密切相关的。如果使用Serial收集器中的新生代名称”Default New Generation”，显示”[DefNew”。如果使用ParNew,则为”[Tenured”，使用Parallel Scavenge收集器，那它配套的新生代名称为”PSYoungGen” 老年代和永久代同理，名称由收集器决定。</p>
+<p>“3324K-&gt;152K(3712k)”表示 GC前该内存区域已使用容量 -&gt; GC 后该内存区域已使用容量（该内存区域总容量）。</p>
+<p>方括号之外的”3324K-&gt;152K(11904)” 表示 GC前java堆已使用容量-&gt;GC 后该java堆已使用容量（java堆总容量）。<br>“0.0025925 secs”表示内存区域GC所占用的时间，单位秒。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.jpg" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="" target="_blank"><span class="text-dark">Hahass</span><small class="ml-1x">Web Developer &amp; Designer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2019/05/28/jvm/java-jvm-monitor/" title="java内存监控工具"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2019/05/27/jvm/java-jvm-gc-algorithm/" title="垃圾收集算法"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>$</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>Maybe you could buy me a cup of coffee.</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/" alt="Scan Qrcode" title="Scan" />
+              </div>
+              <p class="text-muted mv">Scan this qrcode</p>
+              <p class="text-grey">Open alipay app scan this qrcode, buy me a coffee!</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/" alt="Scan Qrcode" title="Scan" />
+              </div>
+              <p class="text-muted mv">Scan this qrcode</p>
+              <p class="text-grey">Open wechat app scan this qrcode, buy me a coffee!</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> alipay</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> wechat payment</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>
